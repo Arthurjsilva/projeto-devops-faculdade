@@ -1,0 +1,35 @@
+name: Deploy to AWS
+
+# Aciona quando houver push na main ou staging (Requisito do professor)
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Entra na pasta do projeto
+            cd projeto-devops-faculdade
+            
+            # Baixa as atualizações do GitHub
+            git pull origin main
+            
+            # Derruba os containers antigos e sobe os novos
+            # Usamos sudo pois o docker precisa de permissão as vezes, 
+            # mas como configuramos o grupo, talvez não precise. Por segurança:
+            docker compose down
+            docker compose up -d --build
