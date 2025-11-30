@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # --- SUA APLICAÇÃO ---
+  # --- SUA APLICAÇÃO (Mantive igual) ---
   db:
     image: postgres:13
     environment:
@@ -27,47 +27,45 @@ services:
     networks:
       - monitoring
 
-  # --- MONITORAMENTO (ZABBIX & GRAFANA) ---
-  
-  # 1. Banco de dados exclusivo para o Zabbix (MySQL)
+  # --- MONITORAMENTO (VERSÃO LEVE - POSTGRESQL) ---
+
+  # 1. Banco de dados do Zabbix (Agora é Postgres!)
   zabbix-db:
-    image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
+    image: postgres:13-alpine
     environment:
-      MYSQL_DATABASE: zabbix
-      MYSQL_USER: zabbix
-      MYSQL_PASSWORD: zabbix_password
-      MYSQL_ROOT_PASSWORD: root_password
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_password
+      POSTGRES_DB: zabbix
     volumes:
-      - zabbix_db_data:/var/lib/mysql
+      - zabbix_db_data_pg:/var/lib/postgresql/data
     networks:
       - monitoring
 
-  # 2. Servidor Zabbix (O cérebro)
+  # 2. Servidor Zabbix (Versão PGSQL)
   zabbix-server:
-    image: zabbix/zabbix-server-mysql:latest
+    image: zabbix/zabbix-server-pgsql:latest
     ports:
       - "10051:10051"
     environment:
       DB_SERVER_HOST: zabbix-db
-      MYSQL_DATABASE: zabbix
-      MYSQL_USER: zabbix
-      MYSQL_PASSWORD: zabbix_password
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_password
+      POSTGRES_DB: zabbix
     depends_on:
       - zabbix-db
     networks:
       - monitoring
 
-  # 3. Interface Web do Zabbix (Para você acessar)
+  # 3. Interface Web (Versão PGSQL)
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-mysql:latest
+    image: zabbix/zabbix-web-nginx-pgsql:latest
     ports:
-      - "8081:8080"  # Vamos usar a porta 8081 para não conflitar
+      - "8081:8080"
     environment:
       DB_SERVER_HOST: zabbix-db
-      MYSQL_DATABASE: zabbix
-      MYSQL_USER: zabbix
-      MYSQL_PASSWORD: zabbix_password
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_password
+      POSTGRES_DB: zabbix
       ZBX_SERVER_HOST: zabbix-server
       PHP_TZ: America/Sao_Paulo
     depends_on:
@@ -75,7 +73,7 @@ services:
     networks:
       - monitoring
 
-  # 4. Agente Zabbix (Para monitorar o próprio servidor)
+  # 4. Agente Zabbix
   zabbix-agent:
     image: zabbix/zabbix-agent:latest
     environment:
@@ -84,7 +82,7 @@ services:
     networks:
       - monitoring
 
-  # 5. Grafana (Para os gráficos bonitos)
+  # 5. Grafana
   grafana:
     image: grafana/grafana:latest
     ports:
@@ -96,7 +94,7 @@ services:
 
 volumes:
   postgres_data:
-  zabbix_db_data:
+  zabbix_db_data_pg:
   grafana_data:
 
 networks:
